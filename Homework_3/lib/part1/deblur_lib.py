@@ -63,10 +63,10 @@ b = comp2real(vec(fft2(fftshift(x))))
 K1 = 17
 K2 = 17
 Indw = np.zeros([imsize1,imsize2])
-ind1 = np.int(imsize1/2-(K1+1)/2+1)
-ind2 = np.int(imsize1/2+(K1+1)/2)
-ind3 = np.int(imsize2/2-(K2+1)/2+1)
-ind4 = np.int(imsize2/2+(K2+1)/2)
+ind1 = int(imsize1/2-(K1+1)/2+1)
+ind2 = int(imsize1/2+(K1+1)/2)
+ind3 = int(imsize2/2-(K2+1)/2+1)
+ind4 = int(imsize2/2+(K2+1)/2)
 Indw[ind1:ind2,ind3:ind4] = 1
 #above, for implementational simplicity we assume K1 and K2 odd, even  
 #if they are even 1 pixel probably won't cause much trouble

@@ -133,7 +133,7 @@ def value_kmeans(points, labels):
     count = np.zeros([k,], int)
     
     for i in range(k):
-        count[i] = np.int(np.sum(labels==(i)))
+        count[i] = int(np.sum(labels==(i)))
         
     idx = 0
     value = 0
@@ -166,6 +166,42 @@ A2 = lambda x: np.sum(x, axis = 0)
 At2 = lambda y: (np.matlib.repmat(y, N, 1))
 
 b = np.double(np.ones(N))
+
+
+def run_PDHG(alg, composite, maxit=int(1e3)):
+    state = alg.init_state(composite, np.zeros((N,N)))
+    
+    
+    feasibility1 = [] # norm(A1(X)-b1)/norm(b1)
+    feasibility2 = [] # dist(X, \mathcal{K})
+    objective    = [] # f(x)
+    cur_iter    = [] 
+    t    = [] 
+    
+    
+    iter_track = np.unique(np.ceil(np.power(2, np.linspace(0,20,50))))
+    
+    start = time.time()
+    
+    bar = trange(1, maxit+1)
+    for iteration in bar:
+        
+        # Primal variable update
+        state = alg.state_update(composite, state)
+                
+        # Update A*X - b
+        AX1_b = A1(state.x_k)-b
+        
+        if any(iteration == iter_track) or iteration==maxit:
+            feasibility1.append(np.linalg.norm(AX1_b)/N)
+            feasibility2.append(np.linalg.norm(np.minimum(state.x_k,0), ord='fro'))
+            objective.append(np.sum(C.flatten()*state.x_k.flatten()))
+            cur_iter.append(iteration)
+            t.append(time.time()-start)
+            bar.set_description('{:03d} | {:.4e}| {:.4e}| {:.4e}|'.format(iteration, feasibility1[-1], feasibility2[-1],objective[-1]))
+            
+    return state.x_k, feasibility1, feasibility2, objective, cur_iter, t
+
 
 
 def run_PD3O(alg, composite, maxit=int(1e3)):
@@ -201,6 +237,45 @@ def run_PD3O(alg, composite, maxit=int(1e3)):
             bar.set_description('{:03d} | {:.4e}| {:.4e}| {:.4e}|'.format(iteration, feasibility1[-1], feasibility2[-1],objective[-1]))
             
     return state.x_k, feasibility1, feasibility2, objective, cur_iter, t
+
+
+def run_CGAL(alg, composite, maxit=int(1e3),beta0=1):
+    state = alg.init_state(composite, np.zeros((N,N)),beta0)
+    p = composite[-1]
+    
+    feasibility1 = [] # norm(A1(X)-b1)/norm(b1)
+    feasibility2 = [] # norm(A2(X)-b2)/norm(b2)
+    feasibility3=  [] # dist(X, \mathcal{K}) #TODO?????
+    objective    = [] # f(x)
+    cur_iter    = [] 
+    t    = [] 
+    
+    
+    iter_track = np.unique(np.ceil(np.power(2, np.linspace(0,20,50))))
+    
+    start = time.time()
+    
+    bar = trange(1, maxit+1)
+    for iteration in bar:
+        
+        # Primal variable update
+        state = alg.state_update(composite, state)
+                
+        # Update A*X - b
+        AX1_b = A1(state.x_k)-b
+        
+        if any(iteration == iter_track) or iteration==maxit:
+            # feasibility1.append(np.linalg.norm(AX1_b)/N)
+            # feasibility2.append(np.linalg.norm(np.minimum(state.x_k,0), ord='fro'))
+            feasibility1.append(p.penalties[0](state.x_k)/N)
+            feasibility2.append(p.penalties[1](state.x_k)/N)
+            feasibility3.append(p.penalties[2](state.x_k))
+            objective.append(np.sum(C.flatten()*state.x_k.flatten()))
+            cur_iter.append(iteration)
+            t.append(time.time()-start)
+            bar.set_description('{:03d} | {:.4e}| {:.4e}| {:.4e}|'.format(iteration, feasibility1[-1], feasibility2[-1],objective[-1]))
+            
+    return state.x_k, feasibility1, feasibility2,feasibility3, objective, cur_iter, t
 
 
 def run_HCGM(alg, problem, maxit=int(1e3), beta0=1):
